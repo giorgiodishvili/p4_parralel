@@ -1,0 +1,6 @@
+*.o
+/cmake-build-debug
+*.xml
+/.idea/*
+
+/.idea/p4_parallel.iml
