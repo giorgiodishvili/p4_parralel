@@ -24,9 +24,6 @@ int main(int argc, char *argv[]) {
     // Get the total number ranks in this communicator
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    // Pack these values together into a string
-    int buffer_len = 150;
-    char buffer[buffer_len];
     // If not rank zero, send your message to be printed
     while (!done) {
         if (rank == 0) {
@@ -49,7 +46,7 @@ int main(int argc, char *argv[]) {
 
         count = 0;
 
-        for (i = 1; i <= n; i += size) {
+        for (i = (rank + 1); i <= n; i += size) {
             // Get the random numbers between 0 and 1
             x = ((double) rand()) / ((double) RAND_MAX);
             y = ((double) rand()) / ((double) RAND_MAX);
@@ -60,20 +57,25 @@ int main(int argc, char *argv[]) {
             // Check whether z is within the circle
             if (z <= 1.0)
                 count++;
+
         }
-        pi = ((double) count / (double) n) * 4.0;
-        sprintf(buffer, "pi is approx. %.16f, Error is %.16f\n", pi, fabs(pi - PI25DT));
-        MPI_Send(buffer, buffer_len, MPI_CHAR, 0, rank, MPI_COMM_WORLD);
+        MPI_Send(&count, 1, MPI_INT, 0, rank, MPI_COMM_WORLD);
 
         if (rank == 0) {
+            int local_count = 0;
             for (int i = 0; i < size; i++) {
 
                 // Takes buffer, size, type, source, tag, communicator, and status
-                MPI_Recv(buffer, buffer_len, MPI_CHAR, i, MPI_ANY_TAG,
+                MPI_Recv(&count, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                // Print our received message
-                printf("%s\n", buffer);
+
+                local_count += count;
+
             }
+
+            pi = ((double) local_count / (double) n) * 4.0;
+
+            printf("pi is approx. %.16f, Error is %.16f\n", pi, fabs(pi - PI25DT));
         }
     }
 
