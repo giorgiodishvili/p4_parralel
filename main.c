@@ -31,15 +31,15 @@ int main(int argc, char *argv[]) {
             printf("Enter the number of points: (0 quits) \n");
             scanf("%d", &n);
 
-            for (int i = 0; i < size; i++) {
+            for (int i = 1; i < size; i++) {
                 // Takes buffer, size, type, source, tag, communicator, and status
                 MPI_Send(&n, 1, MPI_INT, i, i, MPI_COMM_WORLD);
 
             }
+        } else {
+            MPI_Recv(&n, 1, MPI_INT, 0, rank,
+                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
-
-        MPI_Recv(&n, 1, MPI_INT, 0, rank,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 
         if (n == 0) break;
