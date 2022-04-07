@@ -12,7 +12,7 @@ int MPI_FlattreeColective(const void *sendbuf, void *recvbuf, int count,
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
     int error = MPI_SUCCESS;
-    int *sum;
+    void *sum ;
 
     error = MPI_Send(sendbuf, count, datatype, root, world_rank, comm);
 
@@ -20,7 +20,7 @@ int MPI_FlattreeColective(const void *sendbuf, void *recvbuf, int count,
         for (int i = 0; i < world_size; ++i) {
             MPI_Recv(sum, count, datatype, MPI_ANY_SOURCE, MPI_ANY_TAG,
                      comm, MPI_STATUS_IGNORE);
-
+            printf("sum is %d \n",*(int*)sum);
             *(int *) recvbuf += *(int*) sum;
         }
     }
