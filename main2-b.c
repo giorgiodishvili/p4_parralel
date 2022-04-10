@@ -12,7 +12,7 @@ int MPI_FlattreeColective(const void *sendbuf, void *recvbuf, int count,
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
     int error = MPI_SUCCESS;
-    void *sum ;
+    void *sum;
 
     error = MPI_Send(sendbuf, count, datatype, root, world_rank, comm);
 
@@ -20,8 +20,7 @@ int MPI_FlattreeColective(const void *sendbuf, void *recvbuf, int count,
         for (int i = 0; i < world_size; ++i) {
             MPI_Recv(sum, count, datatype, MPI_ANY_SOURCE, MPI_ANY_TAG,
                      comm, MPI_STATUS_IGNORE);
-            printf("sum is %d \n",*(int*)sum);
-            *(int *) recvbuf += *(int*) sum;
+            *(int *) recvbuf += *(int *) sum;
         }
     }
     return error;
@@ -31,7 +30,7 @@ int main(int argc, char *argv[]) {
 
     int i, done = 0, n, count;
     double PI25DT = 3.141592653589793238462643;
-    double myPi, pi, x, y, z;
+    double pi, x, y, z;
     // Unique rank is assigned to each process in a communicator
     int rank;
 
@@ -74,14 +73,16 @@ int main(int argc, char *argv[]) {
                 count++;
 
         }
-        myPi = ((double) count / (double) n) * 4.0;
+        int local_count = 0;
 
-        MPI_FlattreeColective(&myPi, &pi, 1, MPI_DOUBLE, MPI_SUM, 0,
+        MPI_FlattreeColective(&count, &local_count, 1, MPI_INT, MPI_SUM, 0,
                               MPI_COMM_WORLD);
 
-        if (rank == 0)
+        if (rank == 0) {
+            pi = ((double) local_count / (double) n) * 4.0;
             printf("pi is approximately %.16f, Error is %.16f\n",
                    pi, fabs(pi - PI25DT));
+        }
 
     }
 
