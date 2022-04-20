@@ -14,13 +14,15 @@ int MPI_FlattreeColective(const void *sendbuf, void *recvbuf, int count,
 
     int error = MPI_SUCCESS;
     void *sum;
+    MPI_Status status;
+    printf("ASDASDASD");
 
     error = MPI_Send(sendbuf, count, datatype, root, world_rank, comm);
 
     if (root == world_rank) {
         for (int i = 0; i < world_size; ++i) {
             MPI_Recv(sum, count, datatype, MPI_ANY_SOURCE, MPI_ANY_TAG,
-                     comm, MPI_STATUS_IGNORE);
+                     comm, &status);
             *(int *) recvbuf += *(int *) sum;
         }
     }
@@ -67,7 +69,7 @@ void MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
     int iterations = index - 1;
 
     while (step > 0 && step <= size) {
-
+        printf("NEVER ENDING \n");
         long long power = pow(2, iterations); //
         iterations++;
         dst = rank + power;
@@ -76,7 +78,7 @@ void MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
             MPI_Send(buffer, count, datatype, dst, 0, comm);
             index++;
             MPI_Send(&index, count, datatype, dst, 0, comm);
-            printf("After Send Rank %d, step %d, dst %d, index %d \n", rank, step, dst, index);
+//            printf("After Send Rank %d, step %d, dst %d, index %d \n", rank, step, dst, index);
         }
         step >>= 1;
 
@@ -113,7 +115,7 @@ int main(int argc, char *argv[]) {
             scanf("%d", &n);
         }
 
-        MPI_BinomialBcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
         if (n == 0) break;
         printf("Recevied n %d, rank %d \n", n, rank);
         count = 0;
