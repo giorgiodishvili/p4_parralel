@@ -2,15 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <mpi.h>
-
-int power_of_two(int index) {
-    int power = 1, base = 2, exp = index;
-    while (exp != 0) {
-        power *= base;
-        --exp;
-    }
-    return power;
-}
+//#include <opencl-c-base.h>
 
 int MPI_FlattreeColective(const void *sendbuf, void *recvbuf, int count,
                           MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm) {
@@ -38,7 +30,7 @@ int MPI_FlattreeColective(const void *sendbuf, void *recvbuf, int count,
 void MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
                        int root, MPI_Comm comm) {
 
-    int size, rank, src, dst;
+    int size, rank, dst;
 
     MPI_Status status;
 
@@ -47,35 +39,45 @@ void MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
 
     if (size == 1) return;
 
-
-    int step = size - rank - 1;
-    int index = 0;
-    printf("Steps to make %d, rank %d \n", step, rank);
-
+    int index = 1;
 
     if (rank != 0) {
 //        printf("Rank %d, step %d \n", rank, step);
-        MPI_Recv(buffer, count, datatype, src, 0, comm, &status);
-        MPI_Recv(&index, count, datatype, src, 0, comm, &status);
-        printf("Rank %d, received %d \n", rank, *(int *) buffer);
+        MPI_Recv(buffer, count, datatype, MPI_ANY_SOURCE, 0, comm, &status); // receive n
+        MPI_Recv(&index, count, datatype, MPI_ANY_SOURCE, 0, comm, &status); // receive index
+        printf("Rank %d, index %d \n", rank, index);
     }
-
+//    int step = pow(2, index - 1) - rank;
+//    int step = size - rank - 1;
+//    int step = size - (size / index) + 1 ;
+    int step = pow(2, index - 1);
+    // 0 -> 1
+    // 1 -> 3. not 0 -> 2
+    // 3 -> 7, 2 -> 6
+//    if (rank == 7) {
+//        printf("im 7777 startingg with step %d \n", step);
+//    }
+    int iterations = index - 1;
     while (step > 0) {
 
-        int power = power_of_two(index);
-
+        long long power = pow(2, iterations); //
+        iterations++;
         dst = rank + power;
-        if (rank == 1) {
-            printf("Rank %d,step %d, dst %d, sent %d \n", rank, step, dst, *(int *) buffer);
-        }
-        MPI_Send(buffer, count, datatype, dst, 0, comm);
-        MPI_Send(&index, count, datatype, dst, 0, comm);
-        step >>= 1;
-        index++;
-        if (rank == 1) {
-            printf("After Send Rank %d,step %d, dst %d, sent %d \n", rank, step, dst, *(int *) buffer);
+//        if (rank == 7) {
+//            printf("dest calculated \n");
+//        }
+        if (dst > 0 && dst < size && dst != rank) {
+            printf("Before Send Rank %d,step %d, dst %d, sent %d \n", rank, step, dst, *(int *) buffer);
+            int next_ind = index + 1;
+            MPI_Send(buffer, count, datatype, dst, 0, comm);
+            MPI_Send(&next_ind, count, datatype, dst, 0, comm);
+            step >>= 1;
+            printf("After Send Rank %d, step %d, dst %d, index %d \n", rank, step, dst, index);
         }
     }
+//    if (rank == 7) {
+//        printf("im 7777 \n");
+//    }
 }
 
 
