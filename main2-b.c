@@ -15,22 +15,36 @@ int MPI_FlattreeColective(const void *sendbuf, void *recvbuf, int count,
     int error = MPI_SUCCESS;
     void *sum;
     MPI_Status status;
-    printf("ASDASDASD");
+    printf("ASDASDASD \n");
 
     error = MPI_Send(sendbuf, count, datatype, root, world_rank, comm);
+    if (error != MPI_SUCCESS) {
+        printf(" ERORO HEPPENED in SEND \n");
+        return error;
+    }
 
     if (root == world_rank) {
         for (int i = 0; i < world_size; ++i) {
-            MPI_Recv(sum, count, datatype, MPI_ANY_SOURCE, MPI_ANY_TAG,
-                     comm, &status);
+            printf(" ERORO STATE %d \n", world_size);
+
+            error = MPI_Recv(sum, count, datatype, MPI_ANY_SOURCE, MPI_ANY_TAG,
+                             comm, &status);
+            printf(" ERORO VALID%d \n", world_size);
+
+            if (error != MPI_SUCCESS) {
+                printf(" ERORO HEPPENED \n");
+                return error;
+            } else {
+                printf(" ERORO NOT HEPPENED \n");
+            }
             *(int *) recvbuf += *(int *) sum;
         }
     }
     return error;
 }
 
-void MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
-                       int root, MPI_Comm comm) {
+int MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
+                      int root, MPI_Comm comm) {
 
     int size, rank, dst;
 
@@ -39,14 +53,21 @@ void MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    if (size == 1) return;
+    if (size == 1 || root != 0) return MPI_SUCCESS;
 
     int index = 1;
+    int error = MPI_SUCCESS;
 
     if (rank != 0) {
 //        printf("Rank %d, step %d \n", rank, step);
-        MPI_Recv(buffer, count, datatype, MPI_ANY_SOURCE, 0, comm, &status); // receive n
-        MPI_Recv(&index, count, datatype, MPI_ANY_SOURCE, 0, comm, &status); // receive index
+        error = MPI_Recv(buffer, count, datatype, MPI_ANY_SOURCE, 0, comm, &status); // receive n
+        if (error != MPI_SUCCESS) {
+            return error;
+        }
+        error = MPI_Recv(&index, count, datatype, MPI_ANY_SOURCE, 0, comm, &status); // receive index
+        if (error != MPI_SUCCESS) {
+            return error;
+        }
 //        printf("Rank %d, index %d \n", rank, index);
     }
 //    int step = pow(2, index - 1) - rank;
@@ -69,21 +90,26 @@ void MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
     int iterations = index - 1;
 
     while (step > 0 && step <= size) {
-        printf("NEVER ENDING \n");
+//        printf("NEVER ENDING \n");
         long long power = pow(2, iterations); //
         iterations++;
         dst = rank + power;
-        if (dst > 0 && dst < size && dst > rank ) {
+        if (dst > 0 && dst < size && dst > rank) {
 //            printf("Before Send Rank %d,step %d, dst %d, sent %d \n", rank, step, dst, *(int *) buffer);
-            MPI_Send(buffer, count, datatype, dst, 0, comm);
+            error = MPI_Send(buffer, count, datatype, dst, 0, comm);
+            if (error != MPI_SUCCESS) {
+                return error;
+            }
             index++;
-            MPI_Send(&index, count, datatype, dst, 0, comm);
+            error = MPI_Send(&index, count, datatype, dst, 0, comm);
+            if (error != MPI_SUCCESS) {
+                return error;
+            }
 //            printf("After Send Rank %d, step %d, dst %d, index %d \n", rank, step, dst, index);
         }
         step >>= 1;
-
     }
-
+    return error;
 }
 
 
@@ -115,7 +141,7 @@ int main(int argc, char *argv[]) {
             scanf("%d", &n);
         }
 
-        MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_BinomialBcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
         if (n == 0) break;
         printf("Recevied n %d, rank %d \n", n, rank);
         count = 0;
