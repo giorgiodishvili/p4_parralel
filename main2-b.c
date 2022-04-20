@@ -3,6 +3,15 @@
 #include <math.h>
 #include <mpi.h>
 
+int power_of_two(int index) {
+    int power = 1, base = 2, exp = index;
+    while (exp != 0) {
+        power *= base;
+        --exp;
+    }
+    return power;
+}
+
 int MPI_FlattreeColective(const void *sendbuf, void *recvbuf, int count,
                           MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm) {
     int world_rank = 0;
@@ -38,41 +47,37 @@ void MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
 
     if (size == 1) return;
 
-    int relative_rank = (rank >= root) ? rank - root : rank - root + size;
 
-    int mask = 0x1;
-//    printf("mask %d, size %d, rank %d \n", mask, size, rank);
-    while (mask < size) {
-        if (relative_rank & mask) {
-            src = rank - mask;
+    int step = size - rank - 1;
+    int index = 0;
+    printf("Steps to make %d, rank %d \n", step, rank);
 
-            if (src < 0)
-                src += size;
 
-            MPI_Recv(buffer, count, datatype, src, 0, comm, &status);
-
-            break;
-        }
-        mask <<= 1;
-//        printf(" updated mask %d, rank %d \n", mask, rank);
+    if (rank != 0) {
+//        printf("Rank %d, step %d \n", rank, step);
+        MPI_Recv(buffer, count, datatype, src, 0, comm, &status);
+        MPI_Recv(&index, count, datatype, src, 0, comm, &status);
+        printf("Rank %d, received %d \n", rank, *(int *) buffer);
     }
 
+    while (step > 0) {
 
-    mask >>= 1;
+        int power = power_of_two(index);
 
-    while (mask > 0) {
-        if (relative_rank + mask < size) {
-            dst = rank + mask;
-
-            if (dst >= size) {
-                dst -= size;
-            }
-
-            MPI_Send(buffer, count, datatype, dst, 0, comm);
+        dst = rank + power;
+        if (rank == 1) {
+            printf("Rank %d,step %d, dst %d, sent %d \n", rank, step, dst, *(int *) buffer);
         }
-        mask >>= 1;
+        MPI_Send(buffer, count, datatype, dst, 0, comm);
+        MPI_Send(&index, count, datatype, dst, 0, comm);
+        step >>= 1;
+        index++;
+        if (rank == 1) {
+            printf("After Send Rank %d,step %d, dst %d, sent %d \n", rank, step, dst, *(int *) buffer);
+        }
     }
 }
+
 
 int main(int argc, char *argv[]) {
 
@@ -104,7 +109,7 @@ int main(int argc, char *argv[]) {
 
         MPI_BinomialBcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
         if (n == 0) break;
-
+        printf("Recevied n %d, rank %d \n", n, rank);
         count = 0;
 
         for (i = (rank + 1); i <= n; i += size) {
