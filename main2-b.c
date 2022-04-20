@@ -45,12 +45,19 @@ void MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
 //        printf("Rank %d, step %d \n", rank, step);
         MPI_Recv(buffer, count, datatype, MPI_ANY_SOURCE, 0, comm, &status); // receive n
         MPI_Recv(&index, count, datatype, MPI_ANY_SOURCE, 0, comm, &status); // receive index
-        printf("Rank %d, index %d \n", rank, index);
+//        printf("Rank %d, index %d \n", rank, index);
     }
 //    int step = pow(2, index - 1) - rank;
-//    int step = size - rank - 1;
+//    int step = 1;
+//    while (step < (size-index)){
+//        step<<=1;
+//    }
+//    printf("after while Rank %d, step %d \n", rank, step);
+
+
+    int step = size - rank - 1;
 //    int step = size - (size / index) + 1 ;
-    int step = pow(2, index - 1);
+//    int step = pow(2, index - 1);
     // 0 -> 1
     // 1 -> 3. not 0 -> 2
     // 3 -> 7, 2 -> 6
@@ -58,26 +65,23 @@ void MPI_BinomialBcast(void *buffer, int count, MPI_Datatype datatype,
 //        printf("im 7777 startingg with step %d \n", step);
 //    }
     int iterations = index - 1;
-    while (step > 0) {
+
+    while (step > 0 && step <= size) {
 
         long long power = pow(2, iterations); //
         iterations++;
         dst = rank + power;
-//        if (rank == 7) {
-//            printf("dest calculated \n");
-//        }
-        if (dst > 0 && dst < size && dst != rank) {
-            printf("Before Send Rank %d,step %d, dst %d, sent %d \n", rank, step, dst, *(int *) buffer);
-            int next_ind = index + 1;
+        if (dst > 0 && dst < size && dst > rank ) {
+//            printf("Before Send Rank %d,step %d, dst %d, sent %d \n", rank, step, dst, *(int *) buffer);
             MPI_Send(buffer, count, datatype, dst, 0, comm);
-            MPI_Send(&next_ind, count, datatype, dst, 0, comm);
-            step >>= 1;
+            index++;
+            MPI_Send(&index, count, datatype, dst, 0, comm);
             printf("After Send Rank %d, step %d, dst %d, index %d \n", rank, step, dst, index);
         }
+        step >>= 1;
+
     }
-//    if (rank == 7) {
-//        printf("im 7777 \n");
-//    }
+
 }
 
 
